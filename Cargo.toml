@@ -3,4 +3,13 @@ name = "formatter-builder"
 version = "0.1.0"
 edition = "2024"
 
+authors = ["A4-Tacks <wdsjxhno1001@163.com>"]
+keywords = ["no_std", "formatter", "builder", "new", "make"]
+categories = ["no-std", "no-std::no-alloc", "rust-patterns"]
+description = "The safe and stable builder for fmt::Formatter"
+
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/A4-Tacks/formatter-builder-rs"
+
 [dependencies]
