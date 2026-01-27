@@ -13,6 +13,9 @@ pub enum Sign {
     Minus,
 }
 
+// NOTE: 如果要添加更多字符, 是一个 break,
+// 并且哪怕声明非穷尽, 宏代码量也会爆炸, 体验会很大影响, 所以需要非同一个版本
+
 /// [`Formatter`] fill character.
 ///
 /// Due to some limitations, only a small number of characters are supported.
@@ -22,6 +25,14 @@ pub enum Fill {
     Zero,
     /// Character `' '`
     Space,
+}
+impl Fill {
+    pub fn as_char(self) -> char {
+        match self {
+            Self::Zero => '0',
+            Self::Space => ' ',
+        }
+    }
 }
 
 /// [`Formatter`] safe builder.
@@ -142,24 +153,76 @@ impl FormatterBuilder {
         Self::default()
     }
 
+    /// Format like `{:+}` and `{:-}`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use formatter_builder::*;
+    /// use std::fmt::Display;
+    /// let mut writter = String::new();
+    /// FormatterBuilder::new().sign(Sign::Plus).with(&mut writter, |f| {
+    ///     2i32.fmt(f);
+    ///     Ok(())
+    /// }).unwrap();
+    /// assert_eq!(writter, "+2");
+    /// ```
     pub fn sign(&mut self, sign: impl Into<Option<Sign>>) -> &mut Self {
         self.sign = sign.into();
         self
     }
 
+    /// Format like `{:0}`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use formatter_builder::*;
+    /// # let writter = String::new();
+    /// FormatterBuilder::new().sign_aware_zero_pad(true).with(writter, |f| {
+    ///     assert!(f.sign_aware_zero_pad());
+    ///     Ok(())
+    /// }).unwrap();
+    /// ```
     pub fn sign_aware_zero_pad(&mut self, sign_aware_zero_pad: bool) -> &mut Self {
         self.sign_aware_zero_pad = sign_aware_zero_pad;
         self
     }
 
+    /// Format like `{:#}`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use formatter_builder::*;
+    /// # let writter = String::new();
+    /// FormatterBuilder::new().alternate(true).with(writter, |f| {
+    ///     assert!(f.alternate());
+    ///     Ok(())
+    /// }).unwrap();
+    /// ```
     pub fn alternate(&mut self, alternate: bool) -> &mut Self {
         self.alternate = alternate;
         self
     }
 
+    /// Format like `{:0>}` `{: ^}` etc
+    ///
     /// # Panics
     ///
     /// - panic when [`align`](FormatterBuilder::align) is unset
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use formatter_builder::*;
+    /// # use Alignment::*;
+    /// # let writter = String::new();
+    /// FormatterBuilder::new().align(Left).fill(Fill::Space).with(writter, |f| {
+    ///     assert_eq!(f.fill(), ' ');
+    ///     Ok(())
+    /// }).unwrap();
+    /// ```
     #[track_caller]
     pub fn fill(&mut self, fill: impl Into<Option<Fill>>) -> &mut Self {
         if let Some(fill_char) = fill.into() {
@@ -168,6 +231,19 @@ impl FormatterBuilder {
         self
     }
 
+    /// Format like `{:<}` and  `{:^}` and `{:>}`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use formatter_builder::*;
+    /// # use Alignment::*;
+    /// # let writter = String::new();
+    /// FormatterBuilder::new().align(Center).with(writter, |f| {
+    ///     assert_eq!(f.align(), Some(Center));
+    ///     Ok(())
+    /// }).unwrap();
+    /// ```
     pub fn align(&mut self, align: impl Into<Option<Alignment>>) -> &mut Self {
         if let Some(alignment) = align.into() {
             self.fill_align.get_or_insert((None, alignment)).1 = alignment;
@@ -175,11 +251,39 @@ impl FormatterBuilder {
         self
     }
 
+    /// Format like `{:3}`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use formatter_builder::*;
+    /// use std::fmt::Display;
+    /// let mut writter = String::new();
+    /// FormatterBuilder::new().width(3).with(&mut writter, |f| {
+    ///     2i32.fmt(f);
+    ///     Ok(())
+    /// }).unwrap();
+    /// assert_eq!(writter, "  2");
+    /// ```
     pub fn width(&mut self, width: impl Into<Option<u16>>) -> &mut Self {
         self.width = width.into();
         self
     }
 
+    /// Format like `{:.3}`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use formatter_builder::*;
+    /// use std::fmt::Display;
+    /// let mut writter = String::new();
+    /// FormatterBuilder::new().precision(3).with(&mut writter, |f| {
+    ///     2f32.fmt(f);
+    ///     Ok(())
+    /// }).unwrap();
+    /// assert_eq!(writter, "2.000");
+    /// ```
     pub fn precision(&mut self, precision: impl Into<Option<u16>>) -> &mut Self {
         self.precision = precision.into();
         self
@@ -203,6 +307,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use Alignment::*;
+    use Fill::*;
+
+    const W: String = String::new();
 
     #[test]
     fn basic_work() {
@@ -214,5 +322,95 @@ mod tests {
                 Ok(())
             }).unwrap();
         assert_eq!(out, "foobar");
+    }
+
+    #[test]
+    fn align() {
+        let aligns = [ Left, Right, Center ];
+        for align in aligns {
+            FormatterBuilder::new()
+                .align(align)
+                .with(W, |f| {
+                    assert_eq!(f.align(), Some(align));
+                    Ok(())
+                }).unwrap();
+        }
+    }
+
+    #[test]
+    fn fill() {
+        let fills = [Zero, Space];
+        for fill in fills {
+            FormatterBuilder::new()
+                .align(Left)
+                .fill(fill)
+                .with(W, |f| {
+                    assert_eq!(f.fill(), fill.as_char());
+                    Ok(())
+                }).unwrap();
+        }
+    }
+
+    #[test]
+    fn alternate() {
+        for alt in [true, false] {
+            FormatterBuilder::new()
+                .alternate(alt)
+                .with(W, |f| {
+                    assert_eq!(f.alternate(), alt);
+                    Ok(())
+                }).unwrap();
+        }
+    }
+
+    #[test]
+    fn width() {
+        for width in [None, Some(0), Some(1), Some(2), Some(4), Some(256)] {
+            FormatterBuilder::new()
+                .width(width)
+                .with(W, |f| {
+                    assert_eq!(f.width(), width.map(Into::into));
+                    Ok(())
+                }).unwrap();
+        }
+    }
+
+    #[test]
+    fn precision() {
+        for precision in [None, Some(0), Some(1), Some(2), Some(4), Some(256)] {
+            FormatterBuilder::new()
+                .precision(precision)
+                .with(W, |f| {
+                    assert_eq!(f.precision(), precision.map(Into::into));
+                    Ok(())
+                }).unwrap();
+        }
+    }
+
+    #[test]
+    fn sign_aware_zero_pad() {
+        for sazp in [true, false] {
+            FormatterBuilder::new()
+                .sign_aware_zero_pad(sazp)
+                .with(W, |f| {
+                    assert_eq!(f.sign_aware_zero_pad(), sazp);
+                    Ok(())
+                }).unwrap();
+        }
+    }
+
+    #[test]
+    fn sign() {
+        // Sign::Minus unused
+        for (sign, exp) in [(Sign::Plus, "+1")] {
+            let mut out = String::new();
+            FormatterBuilder::new()
+                .sign(sign)
+                .with(&mut out, |f| {
+                    std::fmt::Display::fmt(&1, f)?;
+                    Ok(())
+                }).unwrap();
+            assert_eq!(out, exp);
+        }
     }
 }
