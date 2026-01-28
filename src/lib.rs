@@ -34,6 +34,29 @@ impl Fill {
         }
     }
 }
+impl TryFrom<char> for Fill {
+    type Error = TryFromCharError;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            ' ' => Ok(Self::Space),
+            '0' => Ok(Self::Zero),
+            ch => Err(TryFromCharError(ch)),
+        }
+    }
+}
+#[derive(Debug)]
+pub struct TryFromCharError(char);
+impl fmt::Display for TryFromCharError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        write!(f, "unsupported fill char {:?}", self.0)
+    }
+}
+impl core::error::Error for TryFromCharError {
+    fn description(&self) -> &str {
+        "unsupported fill char"
+    }
+}
 
 /// [`Formatter`] safe builder.
 ///
