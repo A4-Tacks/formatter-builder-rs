@@ -20,3 +20,17 @@ formatter_builder::FormatterBuilder::new()
     .unwrap();
 assert_eq!(output, "0006.230")
 ```
+
+```rust
+use std::fmt::{Display, Formatter, Result};
+use formatter_builder::FormatterBuilder;
+
+struct Foo(f32);
+impl Display for Foo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        FormatterBuilder::from_formatter_lossy(f)
+            .precision(2)
+            .with(f, |f| self.0.fmt(f))
+    }
+}
+```
