@@ -121,6 +121,7 @@ macro_rules! builder {
 }
 
 impl FormatterBuilder {
+    #[inline]
     pub fn with<W, F>(&self, mut writer: W, f: F) -> fmt::Result
     where
         W: Write,
@@ -353,6 +354,7 @@ impl<F> fmt::Display for FormatWith<F>
 where
     F: FnOnce(&mut Formatter<'_>) -> fmt::Result,
 {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.0.take().unwrap()(f)
     }

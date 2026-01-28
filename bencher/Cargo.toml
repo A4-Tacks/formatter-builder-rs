@@ -1,0 +1,19 @@
+[package]
+name = "bencher"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+formatter-builder = { version = "*", path = ".." }
+oorandom = "11.1.5"
+
+[dev-dependencies]
+criterion = "0.8.1"
+
+[[bench]]
+name = "basic"
+harness = false
+
+[[bench]]
+name = "from-lossy"
+harness = false

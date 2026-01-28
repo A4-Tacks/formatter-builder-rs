@@ -1,6 +1,6 @@
 [package]
 name = "formatter-builder"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 
 authors = ["A4-Tacks <wdsjxhno1001@163.com>"]
@@ -11,5 +11,8 @@ description = "The safe and stable builder for fmt::Formatter"
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/A4-Tacks/formatter-builder-rs"
+
+[workspace]
+members = ["bencher"]
 
 [dependencies]
