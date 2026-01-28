@@ -38,7 +38,7 @@ impl Fill {
 /// [`Formatter`] safe builder.
 ///
 #[doc = include_str!("../README.md")]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct FormatterBuilder {
     sign: Option<Sign>,
     sign_aware_zero_pad: bool,
