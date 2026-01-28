@@ -176,6 +176,37 @@ impl FormatterBuilder {
         Self::default()
     }
 
+    /// Rebuild from [`Formatter`], but maybe lose some fields
+    ///
+    /// Incomplete list of loses:
+    ///
+    /// - Only support partial fill char ([`Fill`])
+    /// - About DebugHex (`x?` `X?`)
+    pub fn from_formatter_lossy(f: &Formatter<'_>) -> Self {
+        let mut b = Self::new();
+
+        if f.sign_plus() {
+            b.sign(Sign::Plus);
+        } else if f.sign_minus() {
+            b.sign(Sign::Minus);
+        }
+
+        b.sign_aware_zero_pad(f.sign_aware_zero_pad())
+            .alternate(f.alternate())
+            .width(f.width().map(|it| it as u16))
+            .precision(f.precision().map(|it| it as u16));
+
+        if let Some(align) = f.align() {
+            b.align(align);
+
+            if let Ok(fill) = Fill::try_from(f.fill()) {
+                b.fill(fill);
+            }
+        }
+
+        b
+    }
+
     /// Format like `{:+}` and `{:-}`
     ///
     /// # Examples
@@ -435,5 +466,53 @@ mod tests {
                 }).unwrap();
             assert_eq!(out, exp);
         }
+    }
+
+    #[test]
+    fn core_default_fill() {
+        struct Foo;
+        impl fmt::Display for Foo {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                assert_eq!(f.fill(), ' ');
+                Ok(())
+            }
+        }
+        assert_eq!(Foo.to_string(), "");
+    }
+
+    #[test]
+    fn from_formatter_lossy() {
+        struct Foo;
+        impl fmt::Display for Foo {
+            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+                FormatterBuilder::from_formatter_lossy(f)
+                    .with(W, |g| {
+                        assert_eq!(f.fill(), g.fill());
+                        assert_eq!(f.sign_plus(), g.sign_plus());
+                        assert_eq!(f.sign_minus(), g.sign_minus());
+                        assert_eq!(f.alternate(), g.alternate());
+                        assert_eq!(f.width(), g.width());
+                        assert_eq!(f.precision(), g.precision());
+                        Ok(())
+                    })
+            }
+        }
+        let _ = format!("{Foo}");
+        let _ = format!("{Foo:#}");
+        let _ = format!("{Foo:#0}");
+        let _ = format!("{Foo:0<#}");
+        let _ = format!("{Foo: <#}");
+        let _ = format!("{Foo:#.0}");
+        let _ = format!("{Foo:#.}");
+        let _ = format!("{Foo:#0.}");
+        let _ = format!("{Foo:#1.}");
+        let _ = format!("{Foo:#.0}");
+        let _ = format!("{Foo:#.1}");
+        let _ = format!("{Foo:#2.1}");
+        let _ = format!("{Foo:2.1}");
+        let _ = format!("{Foo:+2.1}");
+        let _ = format!("{Foo:-2.1}");
+        let _ = format!("{Foo:-#2.1}");
+        let _ = format!("{Foo:0^-#2.1}");
     }
 }
